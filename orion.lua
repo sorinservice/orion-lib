@@ -28,11 +28,7 @@ local OrionLib = {
 -- === SorinHub Icons (custom) =========================================
 -- Key = short name you’ll pass in TabConfig.Icon, Value = rbxassetid
 local Icons = {
-	home    = "rbxassetid://133768243848629",
-	info    = "rbxassetid://133768243848629",
-	visual  = "rbxassetid://133768243848629",
-	bypass  = "rbxassetid://133768243848629",
-	utility = "rbxassetid://133768243848629",
+	main    = "rbxassetid://133768243848629",
 }
 
 getgenv().gethui = function()
