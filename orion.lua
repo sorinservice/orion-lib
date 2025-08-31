@@ -29,6 +29,7 @@ local OrionLib = {
 -- Key = short name you’ll pass in TabConfig.Icon, Value = rbxassetid
 local Icons = {
 	main    = "rbxassetid://133768243848629",
+	info    = "rbxassetid://77831165474864"
 }
 
 getgenv().gethui = function()
