@@ -25,32 +25,28 @@ local OrionLib = {
 	SaveCfg = false
 }
 
---Feather Icons https://github.com/evoincorp/lucideblox/tree/master/src/modules/util - Created by 7kayoh
-local Icons = {"chevron-right"}
---[[
-local Success, Response = pcall(function()
-	Icons = HttpService:JSONDecode(game:HttpGetAsync("https://raw.githubusercontent.com/evoincorp/lucideblox/master/src/modules/util/icons.json")).icons
-end)
+-- === SorinHub Icons (custom) =========================================
+-- Key = short name you’ll pass in TabConfig.Icon, Value = rbxassetid
+local Icons = {
+	home    = "rbxassetid://133768243848629",
+	info    = "rbxassetid://133768243848629",
+	visual  = "rbxassetid://133768243848629",
+	bypass  = "rbxassetid://133768243848629",
+	utility = "rbxassetid://133768243848629",
+}
 
-if not Success then
-	warn("\nOrion Library - Failed to load Feather Icons. Error code: " .. Response .. "\n")
-end	
-]]
-
-getgenv().gethui = function() 
-  return game.CoreGui 
+getgenv().gethui = function()
+	return game.CoreGui
 end
 
-local function GetIcon(IconName)
-	if Icons[IconName] ~= nil then
-		return Icons[IconName]
-	else
-		return nil
-	end
-end   
+-- Nur mappen, wenn 'name' ein KEY im Icons-Table ist. Kein Fallback.
+local function GetIcon(name)
+	return Icons[name]
+end
+-- ====================================================================
 
 local Orion = Instance.new("ScreenGui")
-Orion.Name = (getgenv()._SorinWinCfg and getgenv()._SorinWinCfg.GuiName) or "SorinUI"
+Orion.Name = (getgenv()._SorinWinCfg and getgenv()._SorinWinCfg.GuiName) or "SorinHub"
 if syn then
 	syn.protect_gui(Orion)
 	Orion.Parent = game.CoreGui
@@ -78,7 +74,6 @@ function OrionLib:IsRunning()
 	else
 		return Orion.Parent == game:GetService("CoreGui")
 	end
-
 end
 
 local function AddConnection(Signal, Function)
@@ -94,7 +89,6 @@ task.spawn(function()
 	while (OrionLib:IsRunning()) do
 		wait()
 	end
-
 	for _, Connection in next, OrionLib.Connections do
 		Connection:Disconnect()
 	end
@@ -347,6 +341,7 @@ CreateElement("Image", function(ImageID)
 		BackgroundTransparency = 1
 	})
 
+	-- Nur wenn ImageID ein Key im Icons-Table ist, wird gemappt.
 	if GetIcon(ImageID) ~= nil then
 		ImageNew.Image = GetIcon(ImageID)
 	end	
@@ -394,8 +389,8 @@ function OrionLib:MakeNotification(NotificationConfig)
 	spawn(function()
 		NotificationConfig.Name = NotificationConfig.Name or "Notification"
 		NotificationConfig.Content = NotificationConfig.Content or "Test"
-		NotificationConfig.Image = NotificationConfig.Image or "rbxassetid://4384403532"
-		NotificationConfig.Time = NotificationConfig.Time or 15
+		NotificationConfig.Image = NotificationConfig.Image or "rbxassetid://87052561483042"
+		NotificationConfig.Time = NotificationConfig.Time or 10
 
 		local NotificationParent = SetProps(MakeElement("TFrame"), {
 			Size = UDim2.new(1, 0, 0, 0),
@@ -467,18 +462,18 @@ function OrionLib:MakeWindow(WindowConfig)
 	local UIHidden = false
 
 	WindowConfig = WindowConfig or {}
-	WindowConfig.Name = WindowConfig.Name or "Orion Library"
+	WindowConfig.Name = WindowConfig.Name or "SorinHub"
 	WindowConfig.ConfigFolder = WindowConfig.ConfigFolder or WindowConfig.Name
 	WindowConfig.SaveConfig = WindowConfig.SaveConfig or false
 	WindowConfig.HidePremium = WindowConfig.HidePremium or false
 	if WindowConfig.IntroEnabled == nil then
 		WindowConfig.IntroEnabled = true
 	end
-	WindowConfig.IntroText = WindowConfig.IntroText or "Orion Library"
+	WindowConfig.IntroText = WindowConfig.IntroText or "Loading SorinHub"
 	WindowConfig.CloseCallback = WindowConfig.CloseCallback or function() end
 	WindowConfig.ShowIcon = WindowConfig.ShowIcon or false
 	WindowConfig.Icon = WindowConfig.Icon or "rbxassetid://8834748103"
-	WindowConfig.IntroIcon = WindowConfig.IntroIcon or "rbxassetid://8834748103"
+	WindowConfig.IntroIcon = WindowConfig.IntroIcon or "rbxassetid://122633020844347"
 	OrionLib.Folder = WindowConfig.ConfigFolder
 	OrionLib.SaveCfg = WindowConfig.SaveConfig
 
@@ -602,13 +597,6 @@ function OrionLib:MakeWindow(WindowConfig)
 		Size = UDim2.new(0, 615, 0, 344),
 		ClipsDescendants = true
 	}), {
-		--SetProps(MakeElement("Image", "rbxassetid://3523728077"), {
-		--	AnchorPoint = Vector2.new(0.5, 0.5),
-		--	Position = UDim2.new(0.5, 0, 0.5, 0),
-		--	Size = UDim2.new(1, 80, 1, 320),
-		--	ImageColor3 = Color3.fromRGB(33, 33, 33),
-		--	ImageTransparency = 0.7
-		--}),
 		SetChildren(SetProps(MakeElement("TFrame"), {
 			Size = UDim2.new(1, 0, 0, 50),
 			Name = "TopBar"
@@ -631,6 +619,17 @@ function OrionLib:MakeWindow(WindowConfig)
 		DragPoint,
 		WindowStuff
 	}), "Main")
+
+	-- ===== FIX: SorinLogo jetzt NACH MainWindow erstellen =====
+	local SorinLogo = SetProps(MakeElement("Image", "rbxassetid://122633020844347"), {
+		Size = UDim2.new(0, 20, 0, 20),
+		Position = UDim2.new(0, 5, 0, 15),
+		BackgroundTransparency = 1
+	})
+	SorinLogo.Parent = MainWindow.TopBar
+	-- Titel etwas nach rechts, damit Platz fürs Logo ist
+	WindowName.Position = UDim2.new(0, 30, 0, -24)
+	-- ==========================================================
 
 	if WindowConfig.ShowIcon then
 		WindowName.Position = UDim2.new(0, 50, 0, -24)
@@ -728,6 +727,8 @@ function OrionLib:MakeWindow(WindowConfig)
 			Size = UDim2.new(1, 0, 0, 30),
 			Parent = TabHolder
 		}), {
+			-- FIX: Icon hier mit Rohwert (TabConfig.Icon) erzeugen;
+			-- Mapping passiert in CreateElement("Image") oder unten über GetIcon.
 			AddThemeObject(SetProps(MakeElement("Image", TabConfig.Icon), {
 				AnchorPoint = Vector2.new(0, 0.5),
 				Size = UDim2.new(0, 18, 0, 18),
@@ -735,6 +736,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				ImageTransparency = 0.4,
 				Name = "Ico"
 			}), "Text"),
+
 			AddThemeObject(SetProps(MakeElement("Label", TabConfig.Name, 14), {
 				Size = UDim2.new(1, -35, 1, 0),
 				Position = UDim2.new(0, 35, 0, 0),
@@ -744,6 +746,7 @@ function OrionLib:MakeWindow(WindowConfig)
 			}), "Text")
 		})
 
+		-- Wenn Icon-Key vorhanden, setze gemapptes Asset.
 		if GetIcon(TabConfig.Icon) ~= nil then
 			TabFrame.Ico.Image = GetIcon(TabConfig.Icon)
 		end	
@@ -1058,15 +1061,15 @@ function OrionLib:MakeWindow(WindowConfig)
 				
 				local function EndDrag(Input)
 					if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-					    	Dragging = false
+						Dragging = false
 					end
 				end
 				
 				local function UpdateDrag(Input)
 					if Dragging and (Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch) then
 						local SizeScale = math.clamp((Input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
-					    	Slider:Set(SliderConfig.Min + ((SliderConfig.Max - SliderConfig.Min) * SizeScale))
-					    	SaveCfg(game.GameId)
+						Slider:Set(SliderConfig.Min + ((SliderConfig.Max - SliderConfig.Min) * SizeScale))
+						SaveCfg(game.GameId)
 					end
 				end
 
@@ -1288,7 +1291,6 @@ function OrionLib:MakeWindow(WindowConfig)
 				}), "Second")
 
 				AddConnection(BindBox.Value:GetPropertyChangedSignal("Text"), function()
-					--BindBox.Size = UDim2.new(0, BindBox.Value.TextBounds.X + 16, 0, 24)
 					TweenService:Create(BindBox, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, BindBox.Value.TextBounds.X + 16, 0, 24)}):Play()
 				end)
 
@@ -1414,7 +1416,6 @@ function OrionLib:MakeWindow(WindowConfig)
 				}), "Second")
 
 				AddConnection(TextboxActual:GetPropertyChangedSignal("Text"), function()
-					--TextContainer.Size = UDim2.new(0, TextboxActual.TextBounds.X + 16, 0, 24)
 					TweenService:Create(TextContainer, TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = UDim2.new(0, TextboxActual.TextBounds.X + 16, 0, 24)}):Play()
 				end)
 
@@ -1711,8 +1712,6 @@ function OrionLib:MakeWindow(WindowConfig)
 		end
 		return ElementFunction   
 	end 
-	
-
 	
 	return TabFunction
 end   
