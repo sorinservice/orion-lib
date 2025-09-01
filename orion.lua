@@ -15,7 +15,7 @@ local OrionLib = {
 			Main = Color3.fromRGB(20, 20, 20), -- Main Leiste
 			Second = Color3.fromRGB(30, 33, 30), -- Tab Leiste, Buttons
 			Stroke = Color3.fromRGB(90, 0, 120), -- Umrandungen
-			Divider = Color3.fromRGB(4, 32, 2),
+			Divider = Color3.fromRGB(32, 0, 29), -- Mainpart
 			Text = Color3.fromRGB(240, 240, 240),
 			TextDark = Color3.fromRGB(150, 150, 150)
 		}
@@ -855,7 +855,7 @@ function OrionLib:MakeWindow(WindowConfig)
 				ButtonConfig = ButtonConfig or {}
 				ButtonConfig.Name = ButtonConfig.Name or "Button"
 				ButtonConfig.Callback = ButtonConfig.Callback or function() end
-				ButtonConfig.Icon = ButtonConfig.Icon or "rbxassetid://118405062258706"
+				ButtonConfig.Icon = ButtonConfig.Icon or "rbxassetid://87081332654823"
 
 				local Button = {}
 
