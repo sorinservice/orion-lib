@@ -7,7 +7,7 @@ print([[
 \___ \ / _ \| '__| | '_ \ 
  ___) | (_) | |  | | | | |
 |____/ \___/|_|  |_|_| |_|
- Invented by Sorin Services
+ Invented by Sorin Services DEV
 ]])
 
 
@@ -113,9 +113,8 @@ end)
 
 -- ===================== Mobile + Desktop Dragging (vollflächig) =====================
 local function AddDraggingFunctionality(DragPoint, Main)
-    local dragging   = false
-    local dragStart  = Vector2.zero    -- Input-Start (Bildschirmkoordinate)
-    local startAbs   = Vector2.zero    -- Fensterstart (AbsolutePosition)
+    local dragging    = false
+    local dragOffset  = Vector2.zero
     local activeInput = nil
 
     local function getViewport()
@@ -123,12 +122,10 @@ local function AddDraggingFunctionality(DragPoint, Main)
         return (cam and cam.ViewportSize) or Vector2.new(1920, 1080)
     end
 
-    local function clampToScreen(p)
+    local function clampToScreen(p, size)
         local vp = getViewport()
-        local w  = Main.AbsoluteSize
-        -- innerhalb des sichtbaren Bereichs halten
-        local maxX = math.max(0, vp.X - w.X)
-        local maxY = math.max(0, vp.Y - w.Y)
+        local maxX = math.max(0, vp.X - size.X)
+        local maxY = math.max(0, vp.Y - size.Y)
         return Vector2.new(
             math.clamp(p.X, 0, maxX),
             math.clamp(p.Y, 0, maxY)
@@ -137,11 +134,10 @@ local function AddDraggingFunctionality(DragPoint, Main)
 
     local function update(input)
         if not dragging then return end
-        local delta  = input.Position - dragStart
-        local newPos = startAbs + delta
-        newPos = clampToScreen(newPos)
-        -- beim ersten Drag wechseln wir hart auf Offset-Positionierung
-        Main.Position = UDim2.fromOffset(newPos.X, newPos.Y)
+        local mousePos = input.Position
+        local newAbs   = mousePos - dragOffset
+        newAbs = clampToScreen(newAbs, Main.AbsoluteSize)
+        Main.Position = UDim2.fromOffset(newAbs.X, newAbs.Y)
     end
 
     DragPoint.InputBegan:Connect(function(input)
@@ -149,8 +145,7 @@ local function AddDraggingFunctionality(DragPoint, Main)
         or input.UserInputType == Enum.UserInputType.Touch then
             dragging    = true
             activeInput = input
-            dragStart   = input.Position
-            startAbs    = Main.AbsolutePosition
+            dragOffset  = input.Position - Main.AbsolutePosition
 
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
@@ -161,15 +156,12 @@ local function AddDraggingFunctionality(DragPoint, Main)
         end
     end)
 
-    -- wir lauschen global und ziehen nur, wenn es das aktive Input-Objekt ist
     AddConnection(UserInputService.InputChanged, function(input)
         if input == activeInput and dragging then
             update(input)
         end
     end)
 end
-
-
 
 -- === Small helpers =========================================================
 local function Create(Name, Properties, Children)
