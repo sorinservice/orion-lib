@@ -112,19 +112,27 @@ task.spawn(function()
 end)
 
 
--- PC + Mobile Dragging
+-- PC + Mobile Dragging (fix: Vector3 -> Vector2, optional clamp/smooth/touch-block)
 local function AddDraggingFunctionality(DragPoint, Main, opts)
     opts = opts or {}
-    local clampToScreen  = (opts.clamp ~= false)      -- default: true
-    local smooth         = (opts.smooth == true)       -- default: false
+    local clampToScreen  = (opts.clamp ~= false)
+    local smooth         = (opts.smooth == true)
     local blockTouchPan  = (opts.blockTouchPan == true)
 
     local UserInputService      = game:GetService("UserInputService")
     local TweenService          = game:GetService("TweenService")
     local ContextActionService  = game:GetService("ContextActionService")
 
-    -- wichtig, damit das Gui Eingaben empfängt
+    -- damit das Gui Eingaben empfängt
     pcall(function() DragPoint.Active = true end)
+
+    -- Utility: Position sicher in Vector2 wandeln
+    local function toV2(pos)
+        if typeof(pos) == "Vector3" then
+            return Vector2.new(pos.X, pos.Y)
+        end
+        return pos
+    end
 
     -- Mobile-Kamerapan während Drag blocken
     local function setTouchBlock(on)
@@ -142,9 +150,9 @@ local function AddDraggingFunctionality(DragPoint, Main, opts)
     end
 
     local dragging    = false
-    local dragStart   = Vector2.zero      -- Input-Start (Bildschirm)
-    local startAbsPos = Vector2.zero      -- Fensterstart (AbsolutePosition)
-    local activeInput = nil               -- genau dieses Input-Objekt verfolgen
+    local dragStart   = Vector2.zero
+    local startAbsPos = Vector2.zero
+    local activeInput = nil
 
     local function viewport()
         local cam = workspace.CurrentCamera
@@ -164,9 +172,10 @@ local function AddDraggingFunctionality(DragPoint, Main, opts)
     end
 
     local function setPos(v2)
-        -- immer Offset benutzen, damit Scale (z.B. zentriert) nicht dämpft
         if smooth then
-            TweenService:Create(Main, TweenInfo.new(0.03, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
+            TweenService:Create(
+                Main,
+                TweenInfo.new(0.03, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
                 { Position = UDim2.fromOffset(v2.X, v2.Y) }
             ):Play()
         else
@@ -176,7 +185,7 @@ local function AddDraggingFunctionality(DragPoint, Main, opts)
 
     local function update(input)
         if not dragging then return end
-        local delta  = input.Position - dragStart
+        local delta  = toV2(input.Position) - dragStart
         local newPos = clamp(startAbsPos + delta)
         setPos(newPos)
     end
@@ -186,7 +195,7 @@ local function AddDraggingFunctionality(DragPoint, Main, opts)
         or input.UserInputType == Enum.UserInputType.Touch then
             dragging    = true
             activeInput = input
-            dragStart   = input.Position
+            dragStart   = toV2(input.Position)
             startAbsPos = Main.AbsolutePosition
             setTouchBlock(true)
 
@@ -737,7 +746,7 @@ end)()
 		WindowIcon.Parent = MainWindow.TopBar
 	end
 
-	AddDraggingFunctionality(DragPoint, MainWindow)
+	AddDraggingFunctionality(MainWindow.TopBar, MainWindow, { clamp = true, blockTouchPan = true })
 
 	-- Mobile reopen chip (≡) for when UI is hidden
 	local MobileReopenChip = nil
