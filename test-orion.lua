@@ -112,20 +112,39 @@ task.spawn(function()
 end)
 
 
--- PC + Mobile Dragging (smooth optional, clamp optional)
-local function AddDraggingFunctionality(MainWindow.TopBar, MainWindow, { clamp = true, smooth = false })
+-- PC + Mobile Dragging
+local function AddDraggingFunctionality(DragPoint, Main, opts)
     opts = opts or {}
-    local clampToScreen = (opts.clamp ~= false)       -- default: true
-    local smooth        = (opts.smooth == true)        -- default: false (set true für leichtes smoothing)
+    local clampToScreen  = (opts.clamp ~= false)      -- default: true
+    local smooth         = (opts.smooth == true)       -- default: false
+    local blockTouchPan  = (opts.blockTouchPan == true)
 
-    -- wichtig für Eingaben
+    local UserInputService      = game:GetService("UserInputService")
+    local TweenService          = game:GetService("TweenService")
+    local ContextActionService  = game:GetService("ContextActionService")
+
+    -- wichtig, damit das Gui Eingaben empfängt
     pcall(function() DragPoint.Active = true end)
-    pcall(function() DragPoint.BackgroundTransparency = DragPoint.BackgroundTransparency or 1 end)
+
+    -- Mobile-Kamerapan während Drag blocken
+    local function setTouchBlock(on)
+        if not blockTouchPan then return end
+        if on then
+            ContextActionService:BindAction(
+                "SorinDragBlock",
+                function() return Enum.ContextActionResult.Sink end,
+                false,
+                Enum.UserInputType.Touch
+            )
+        else
+            ContextActionService:UnbindAction("SorinDragBlock")
+        end
+    end
 
     local dragging    = false
-    local dragStart   = Vector2.zero     -- Input-Start (Bildschirm)
-    local startAbsPos = Vector2.zero     -- Fenster-Start (AbsolutePosition)
-    local activeInput = nil              -- genau dieses Input-Objekt verfolgen
+    local dragStart   = Vector2.zero      -- Input-Start (Bildschirm)
+    local startAbsPos = Vector2.zero      -- Fensterstart (AbsolutePosition)
+    local activeInput = nil               -- genau dieses Input-Objekt verfolgen
 
     local function viewport()
         local cam = workspace.CurrentCamera
@@ -144,14 +163,14 @@ local function AddDraggingFunctionality(MainWindow.TopBar, MainWindow, { clamp =
         )
     end
 
-    local function setPos(vec2)
-        -- immer in Offset setzen, damit keine Scale-Grenzen stören
+    local function setPos(v2)
+        -- immer Offset benutzen, damit Scale (z.B. zentriert) nicht dämpft
         if smooth then
             TweenService:Create(Main, TweenInfo.new(0.03, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
-                { Position = UDim2.fromOffset(vec2.X, vec2.Y) }
+                { Position = UDim2.fromOffset(v2.X, v2.Y) }
             ):Play()
         else
-            Main.Position = UDim2.fromOffset(vec2.X, vec2.Y)
+            Main.Position = UDim2.fromOffset(v2.X, v2.Y)
         end
     end
 
@@ -169,17 +188,18 @@ local function AddDraggingFunctionality(MainWindow.TopBar, MainWindow, { clamp =
             activeInput = input
             dragStart   = input.Position
             startAbsPos = Main.AbsolutePosition
+            setTouchBlock(true)
 
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging    = false
                     activeInput = nil
+                    setTouchBlock(false)
                 end
             end)
         end
     end)
 
-    -- Maus bewegt / Finger bewegt
     DragPoint.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement
         or input.UserInputType == Enum.UserInputType.Touch then
