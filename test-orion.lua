@@ -46,8 +46,16 @@ local OrionLib = {
 -- === SorinHub Icons (custom) ==============================================
 -- Key = short name you’ll pass in TabConfig.Icon, Value = rbxassetid
 local Icons = {
-	main = "rbxassetid://133768243848629",
-	info = "rbxassetid://77831165474864"
+	info     = "rbxassetid://77831165474864",
+	vehicle  = "rbxassetid://119924794521870",
+	aimbot   = "rbxassetid://97543857902415",
+	weapon   = "rbxassetid://73346373535720",
+	esp      = "rbxassetid://86094050921020",
+	graphics = "rbxassetid://135977771783912",
+	Player   = "",
+	Bypass   = "",
+	misc     = "",
+	main     = "rbxassetid://133768243848629"
 }
 
 getgenv().gethui = function()
