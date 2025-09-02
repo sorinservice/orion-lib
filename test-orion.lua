@@ -1,6 +1,7 @@
 -- Orion Library (Sorin edition) - mobile-friendly, FS-safe, neutral lock overlay
 -- All comments and user-facing strings are in English.
-print(" ____             _       
+print("
+	 ____             _       
 / ___|  ___  _ __(_)_ __  
 \___ \ / _ \| '__| | '_ \ 
  ___) | (_) | |  | | | | |
