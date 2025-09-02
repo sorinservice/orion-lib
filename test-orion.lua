@@ -744,7 +744,7 @@ end)()
 		WindowIcon.Parent = MainWindow.TopBar
 	end
 
-	AddDraggingFunctionality(MainWindow.TopBar, MainWindow, { clamp = true, blockTouchPan = true })
+	AddDraggingFunctionality(MainWindow.TopBar, MainWindow, { clamp = false, blockTouchPan = true })
 
 	-- Mobile reopen chip (≡) for when UI is hidden
 	local MobileReopenChip = nil
