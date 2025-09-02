@@ -1,12 +1,15 @@
 -- Orion Library (Sorin edition) - mobile-friendly, FS-safe, neutral lock overlay
 -- All comments and user-facing strings are in English.
-print("
-	 ____             _       
-/ ___|  ___  _ __(_)_ __  
-\___ \ / _ \| '__| | '_ \ 
- ___) | (_) | |  | | | | |
-|____/ \___/|_|  |_|_| |_|
-Invented by Sorin Services")
+
+print([[
+  ____             _       
+ / ___|  ___  _ __(_)_ __  
+ \___ \ / _ \| '__| | '_ \ 
+  ___) | (_) | |  | | | | |
+ |____/ \___/|_|  |_|_| |_|
+ Invented by Sorin Services
+]])
+
 local UserInputService = game:GetService("UserInputService")
 local TweenService     = game:GetService("TweenService")
 local RunService       = game:GetService("RunService")
@@ -394,19 +397,15 @@ end)
 
 CreateElement("Image", function(ImageID)
 	local ImageNew = Create("ImageLabel", {
-		Image = ImageID,
+		Image = GetIcon(ImageID) or ImageID,
 		BackgroundTransparency = 1
 	})
-	-- Map only if ImageID is a key in Icons
-	if GetIcon(ImageID) ~= nil then
-		ImageNew.Image = GetIcon(ImageID)
-	end
 	return ImageNew
 end)
 
 CreateElement("ImageButton", function(ImageID)
 	return Create("ImageButton", {
-		Image = ImageID,
+		Image = GetIcon(ImageID) or ImageID,
 		BackgroundTransparency = 1
 	})
 end)
@@ -587,6 +586,7 @@ function OrionLib:MakeWindow(WindowConfig)
 	})
 
 	-- Left column scroller container
+	local FooterLabel -- capture reference for SetFooter
 	local WindowStuff = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 10), {
 		Size = UDim2.new(0, 150, 1, -50),
 		Position = UDim2.new(0, 0, 0, 50)
@@ -638,11 +638,15 @@ function OrionLib:MakeWindow(WindowConfig)
 				Font = Enum.Font.GothamBold,
 				ClipsDescendants = true
 			}), "Text"),
-			AddThemeObject(SetProps(MakeElement("Label", "", 12), {
-				Size = UDim2.new(1, -60, 0, 12),
-				Position = UDim2.new(0, 50, 1, -25),
-				Visible = not WindowConfig.HidePremium
-			}), "TextDark")
+			(function()
+				FooterLabel = AddThemeObject(SetProps(MakeElement("Label", "", 12), {
+					Name = "Footer",
+					Size = UDim2.new(1, -60, 0, 12),
+					Position = UDim2.new(0, 50, 1, -25),
+					Visible = not WindowConfig.HidePremium
+				}), "TextDark")
+				return FooterLabel
+			end)()
 		}),
 	}), "Second")
 
@@ -833,9 +837,7 @@ function OrionLib:MakeWindow(WindowConfig)
 			}), "Text")
 		})
 
-		if GetIcon(TabConfig.Icon) ~= nil then
-			TabFrame.Ico.Image = GetIcon(TabConfig.Icon)
-		end
+		-- (removed duplicate icon remapping; Image factory already maps keys)
 
 		local Container = AddThemeObject(SetChildren(SetProps(MakeElement("ScrollFrame", Color3.fromRGB(255, 255, 255), 5), {
 			Size = UDim2.new(1, -150, 1, -50),
@@ -1934,6 +1936,18 @@ function OrionLib:MakeWindow(WindowConfig)
 		end
 
 		return ElementFunction
+	end
+
+	-- === Footer API exposed on the returned window object ===================
+	function TabFunction:SetFooter(text, props)
+		if FooterLabel then
+			if text ~= nil then FooterLabel.Text = tostring(text) end
+			props = props or {}
+			if props.color then FooterLabel.TextColor3 = props.color end
+			if props.size then FooterLabel.TextSize = props.size end
+			if props.transparency ~= nil then FooterLabel.TextTransparency = props.transparency end
+			if props.visible ~= nil then FooterLabel.Visible = props.visible end
+		end
 	end
 
 	return TabFunction
