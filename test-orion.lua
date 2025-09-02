@@ -111,59 +111,82 @@ task.spawn(function()
 	end
 end)
 
--- ===================== Mobile + Desktop Dragging (vollflächig, Vector2-safe) =====================
-local function AddDraggingFunctionality(DragPoint, Main)
-    local dragging     = false
-    local dragOffset   = Vector2.zero
-    local activeInput  = nil
 
-    local function toV2(v)
-        local t = typeof(v)
-        if t == "Vector2" then return v end
-        if t == "Vector3" then return Vector2.new(v.X, v.Y) end
-        return Vector2.new(0, 0)
-    end
+-- PC + Mobile Dragging (smooth optional, clamp optional)
+local function AddDraggingFunctionality(MainWindow.TopBar, MainWindow, { clamp = true, smooth = false })
+    opts = opts or {}
+    local clampToScreen = (opts.clamp ~= false)       -- default: true
+    local smooth        = (opts.smooth == true)        -- default: false (set true für leichtes smoothing)
 
-    local function getViewport()
+    -- wichtig für Eingaben
+    pcall(function() DragPoint.Active = true end)
+    pcall(function() DragPoint.BackgroundTransparency = DragPoint.BackgroundTransparency or 1 end)
+
+    local dragging    = false
+    local dragStart   = Vector2.zero     -- Input-Start (Bildschirm)
+    local startAbsPos = Vector2.zero     -- Fenster-Start (AbsolutePosition)
+    local activeInput = nil              -- genau dieses Input-Objekt verfolgen
+
+    local function viewport()
         local cam = workspace.CurrentCamera
-        return (cam and cam.ViewportSize) or Vector2.new(1920, 1080)
+        return (cam and cam.ViewportSize) or Vector2.new(1920,1080)
     end
 
-    local function clampToScreen(p, size)
-        local vp = getViewport()
-        local maxX = math.max(0, vp.X - size.X)
-        local maxY = math.max(0, vp.Y - size.Y)
+    local function clamp(pos)
+        if not clampToScreen then return pos end
+        local vp = viewport()
+        local w  = Main.AbsoluteSize
+        local maxX = math.max(0, vp.X - w.X)
+        local maxY = math.max(0, vp.Y - w.Y)
         return Vector2.new(
-            math.clamp(p.X, 0, maxX),
-            math.clamp(p.Y, 0, maxY)
+            math.clamp(pos.X, 0, maxX),
+            math.clamp(pos.Y, 0, maxY)
         )
+    end
+
+    local function setPos(vec2)
+        -- immer in Offset setzen, damit keine Scale-Grenzen stören
+        if smooth then
+            TweenService:Create(Main, TweenInfo.new(0.03, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
+                { Position = UDim2.fromOffset(vec2.X, vec2.Y) }
+            ):Play()
+        else
+            Main.Position = UDim2.fromOffset(vec2.X, vec2.Y)
+        end
     end
 
     local function update(input)
         if not dragging then return end
-        local mousePos = toV2(input.Position)
-        local newAbs   = mousePos - dragOffset
-        newAbs         = clampToScreen(newAbs, Main.AbsoluteSize)
-        Main.Position  = UDim2.fromOffset(newAbs.X, newAbs.Y)
+        local delta  = input.Position - dragStart
+        local newPos = clamp(startAbsPos + delta)
+        setPos(newPos)
     end
 
     DragPoint.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch then
-            dragging     = true
-            activeInput  = input
-            dragOffset   = toV2(input.Position) - Main.AbsolutePosition
+            dragging    = true
+            activeInput = input
+            dragStart   = input.Position
+            startAbsPos = Main.AbsolutePosition
 
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
-                    dragging     = false
-                    activeInput  = nil
+                    dragging    = false
+                    activeInput = nil
                 end
             end)
         end
     end)
 
-    -- nur das aktive Input-Objekt bewegen
+    -- Maus bewegt / Finger bewegt
+    DragPoint.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
+            activeInput = input
+        end
+    end)
+
     UserInputService.InputChanged:Connect(function(input)
         if input == activeInput and dragging then
             update(input)
