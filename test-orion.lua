@@ -1,7 +1,15 @@
 -- Orion Library (Sorin edition) - mobile-friendly, FS-safe, neutral lock overlay
 -- All comments and user-facing strings are in English.
 
-print("  ____             _       \n / ___|  ___  _ __(_)_ __  \n \\___ \\ / _ \\| '__| | '_ \\ \n  ___) | (_) | |  | | | | |\n |____/ \\___/|_|  |_|_| |_|\n Created by Sorin Services")
+print([[
+ ____             _       
+/ ___|  ___  _ __(_)_ __  
+\___ \ / _ \| '__| | '_ \ 
+ ___) | (_) | |  | | | | |
+|____/ \___/|_|  |_|_| |_|
+ Invented by Sorin Services
+]])
+
 
 
 local UserInputService = game:GetService("UserInputService")
@@ -103,81 +111,64 @@ task.spawn(function()
 	end
 end)
 
--- ===================== Mobile-friendly Dragging ============================
--- Mobile + Mouse dragging with correct clamping for Scale-based positions
+-- ===================== Mobile + Desktop Dragging (vollflächig) =====================
 local function AddDraggingFunctionality(DragPoint, Main)
-    local dragging  = false
-    local dragInput = nil
-    local dragStart = Vector2.zero
-    local startPos  = UDim2.new()
+    local dragging   = false
+    local dragStart  = Vector2.zero    -- Input-Start (Bildschirmkoordinate)
+    local startAbs   = Vector2.zero    -- Fensterstart (AbsolutePosition)
+    local activeInput = nil
 
-    local function getParentSize()
-        local p = Main and Main.Parent
-        if p and p.AbsoluteSize then return p.AbsoluteSize end
+    local function getViewport()
         local cam = workspace.CurrentCamera
         return (cam and cam.ViewportSize) or Vector2.new(1920, 1080)
     end
 
-    local function getWindowSize()
-        return Main.AbsoluteSize
-    end
-
-    -- Clamp offsets while respecting current Scale (e.g. 0.5 when centered)
-    local function clampOffset(ox, oy)
-        local ps = getParentSize()
-        local ws = getWindowSize()
-        local sx, sy = startPos.X.Scale, startPos.Y.Scale
-
-        -- We want: 0 <= ps.X*sx + ox <= ps.X - ws.X
-        --  => ox ∈ [ -ps.X*sx , ps.X*(1 - sx) - ws.X ]
-        local minX = -ps.X * sx
-        local maxX =  ps.X * (1 - sx) - ws.X
-        local minY = -ps.Y * sy
-        local maxY =  ps.Y * (1 - sy) - ws.Y
-
-        return math.clamp(ox, minX, maxX), math.clamp(oy, minY, maxY)
+    local function clampToScreen(p)
+        local vp = getViewport()
+        local w  = Main.AbsoluteSize
+        -- innerhalb des sichtbaren Bereichs halten
+        local maxX = math.max(0, vp.X - w.X)
+        local maxY = math.max(0, vp.Y - w.Y)
+        return Vector2.new(
+            math.clamp(p.X, 0, maxX),
+            math.clamp(p.Y, 0, maxY)
+        )
     end
 
     local function update(input)
         if not dragging then return end
-        local delta = input.Position - dragStart
-
-        local newOx = startPos.X.Offset + delta.X
-        local newOy = startPos.Y.Offset + delta.Y
-
-        newOx, newOy = clampOffset(newOx, newOy)
-        Main.Position = UDim2.new(startPos.X.Scale, newOx, startPos.Y.Scale, newOy)
+        local delta  = input.Position - dragStart
+        local newPos = startAbs + delta
+        newPos = clampToScreen(newPos)
+        -- beim ersten Drag wechseln wir hart auf Offset-Positionierung
+        Main.Position = UDim2.fromOffset(newPos.X, newPos.Y)
     end
 
     DragPoint.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch then
-            dragging  = true
-            dragStart = input.Position
-            startPos  = Main.Position
-            dragInput = input
+            dragging    = true
+            activeInput = input
+            dragStart   = input.Position
+            startAbs    = Main.AbsolutePosition
 
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
+                    dragging    = false
+                    activeInput = nil
                 end
             end)
         end
     end)
 
-    DragPoint.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement
-        or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
+    -- wir lauschen global und ziehen nur, wenn es das aktive Input-Objekt ist
+    AddConnection(UserInputService.InputChanged, function(input)
+        if input == activeInput and dragging then
             update(input)
         end
     end)
 end
+
 
 
 -- === Small helpers =========================================================
@@ -307,9 +298,7 @@ end
 -- ==========================================================================
 
 local WhitelistedMouse = {Enum.UserInputType.MouseButton1, Enum.UserInputType.MouseButton2, Enum.UserInputType.MouseButton3}
-local BlacklistedKeys  = {Enum.KeyCode.Unknown, Enum.KeyCode.W, Enum.KeyCode.A, Enum.KeyCode.S, Enum.KeyCode.D,
-	Enum.KeyCode.Up, Enum.KeyCode.Left, Enum.KeyCode.Down, Enum.KeyCode.Right, Enum.KeyCode.Slash,
-	Enum.KeyCode.Tab, Enum.KeyCode.Backspace, Enum.KeyCode.Escape}
+local BlacklistedKeys  = {Enum.KeyCode.Unknown, Enum.KeyCode.W, Enum.KeyCode.A, Enum.KeyCode.S, Enum.KeyCode.D, Enum.KeyCode.Up, Enum.KeyCode.Left, Enum.KeyCode.Down, Enum.KeyCode.Right, Enum.KeyCode.Slash, Enum.KeyCode.Tab, Enum.KeyCode.Backspace, Enum.KeyCode.Escape}
 
 local function CheckKey(Table, Key)
 	for _, v in next, Table do
@@ -633,14 +622,15 @@ function OrionLib:MakeWindow(WindowConfig)
 				ClipsDescendants = true
 			}), "Text"),
 			(function()
-				FooterLabel = AddThemeObject(SetProps(MakeElement("Label", "", 12), {
-					Name = "Footer",
-					Size = UDim2.new(1, -60, 0, 12),
-					Position = UDim2.new(0, 50, 1, -25),
-					Visible = not WindowConfig.HidePremium
-				}), "TextDark")
-				return FooterLabel
-			end)()
+    FooterLabel = AddThemeObject(SetProps(MakeElement("Label", WindowConfig.SubText or Players.LocalPlayer.Name, 12), {
+        Name = "Footer",
+        Size = UDim2.new(1, -60, 0, 12),
+        Position = UDim2.new(0, 50, 1, -25),
+        Visible = not WindowConfig.HidePremium
+    }), "TextDark")
+    return FooterLabel
+end)()
+
 		}),
 	}), "Second")
 
