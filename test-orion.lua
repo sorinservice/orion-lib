@@ -101,34 +101,49 @@ task.spawn(function()
 end)
 
 -- ===================== Mobile-friendly Dragging ============================
--- Touch + Mouse, direct position updates (no per-pixel tween), clamped to screen
+-- Mobile + Mouse dragging with correct clamping for Scale-based positions
 local function AddDraggingFunctionality(DragPoint, Main)
     local dragging  = false
     local dragInput = nil
     local dragStart = Vector2.zero
     local startPos  = UDim2.new()
 
-    local function getScreenSize()
+    local function getParentSize()
         local p = Main and Main.Parent
         if p and p.AbsoluteSize then return p.AbsoluteSize end
         local cam = workspace.CurrentCamera
         return (cam and cam.ViewportSize) or Vector2.new(1920, 1080)
     end
 
+    local function getWindowSize()
+        return Main.AbsoluteSize
+    end
+
+    -- Clamp offsets while respecting current Scale (e.g. 0.5 when centered)
+    local function clampOffset(ox, oy)
+        local ps = getParentSize()
+        local ws = getWindowSize()
+        local sx, sy = startPos.X.Scale, startPos.Y.Scale
+
+        -- We want: 0 <= ps.X*sx + ox <= ps.X - ws.X
+        --  => ox ∈ [ -ps.X*sx , ps.X*(1 - sx) - ws.X ]
+        local minX = -ps.X * sx
+        local maxX =  ps.X * (1 - sx) - ws.X
+        local minY = -ps.Y * sy
+        local maxY =  ps.Y * (1 - sy) - ws.Y
+
+        return math.clamp(ox, minX, maxX), math.clamp(oy, minY, maxY)
+    end
+
     local function update(input)
         if not dragging then return end
         local delta = input.Position - dragStart
 
-        local newX = startPos.X.Offset + delta.X
-        local newY = startPos.Y.Offset + delta.Y
+        local newOx = startPos.X.Offset + delta.X
+        local newOy = startPos.Y.Offset + delta.Y
 
-        local screen = getScreenSize()
-        local maxX = screen.X - Main.AbsoluteSize.X
-        local maxY = screen.Y - Main.AbsoluteSize.Y
-        newX = math.clamp(newX, 0, math.max(0, maxX))
-        newY = math.clamp(newY, 0, math.max(0, maxY))
-
-        Main.Position = UDim2.new(startPos.X.Scale, newX, startPos.Y.Scale, newY)
+        newOx, newOy = clampOffset(newOx, newOy)
+        Main.Position = UDim2.new(startPos.X.Scale, newOx, startPos.Y.Scale, newOy)
     end
 
     DragPoint.InputBegan:Connect(function(input)
@@ -138,6 +153,7 @@ local function AddDraggingFunctionality(DragPoint, Main)
             dragStart = input.Position
             startPos  = Main.Position
             dragInput = input
+
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
@@ -159,7 +175,7 @@ local function AddDraggingFunctionality(DragPoint, Main)
         end
     end)
 end
--- ==========================================================================
+
 
 -- === Small helpers =========================================================
 local function Create(Name, Properties, Children)
