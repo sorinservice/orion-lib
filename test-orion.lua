@@ -111,11 +111,18 @@ task.spawn(function()
 	end
 end)
 
--- ===================== Mobile + Desktop Dragging (vollflächig) =====================
+-- ===================== Mobile + Desktop Dragging (vollflächig, Vector2-safe) =====================
 local function AddDraggingFunctionality(DragPoint, Main)
-    local dragging    = false
-    local dragOffset  = Vector2.zero
-    local activeInput = nil
+    local dragging     = false
+    local dragOffset   = Vector2.zero
+    local activeInput  = nil
+
+    local function toV2(v)
+        local t = typeof(v)
+        if t == "Vector2" then return v end
+        if t == "Vector3" then return Vector2.new(v.X, v.Y) end
+        return Vector2.new(0, 0)
+    end
 
     local function getViewport()
         local cam = workspace.CurrentCamera
@@ -134,34 +141,36 @@ local function AddDraggingFunctionality(DragPoint, Main)
 
     local function update(input)
         if not dragging then return end
-        local mousePos = input.Position
+        local mousePos = toV2(input.Position)
         local newAbs   = mousePos - dragOffset
-        newAbs = clampToScreen(newAbs, Main.AbsoluteSize)
-        Main.Position = UDim2.fromOffset(newAbs.X, newAbs.Y)
+        newAbs         = clampToScreen(newAbs, Main.AbsoluteSize)
+        Main.Position  = UDim2.fromOffset(newAbs.X, newAbs.Y)
     end
 
     DragPoint.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch then
-            dragging    = true
-            activeInput = input
-            dragOffset  = input.Position - Main.AbsolutePosition
+            dragging     = true
+            activeInput  = input
+            dragOffset   = toV2(input.Position) - Main.AbsolutePosition
 
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
-                    dragging    = false
-                    activeInput = nil
+                    dragging     = false
+                    activeInput  = nil
                 end
             end)
         end
     end)
 
-    AddConnection(UserInputService.InputChanged, function(input)
+    -- nur das aktive Input-Objekt bewegen
+    UserInputService.InputChanged:Connect(function(input)
         if input == activeInput and dragging then
             update(input)
         end
     end)
 end
+
 
 -- === Small helpers =========================================================
 local function Create(Name, Properties, Children)
