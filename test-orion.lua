@@ -1,9 +1,10 @@
 -- Orion Library (Sorin edition) - mobile-friendly, FS-safe, neutral lock overlay
 -- All comments and user-facing strings are in English.
-print("\ \ / / ___  ___  _ __ ___
- \ \ / / / __|/ _ \| '__/ __|
-  \ V /  \__ \ (_) | |  \__ \
-   \_/   |___/\___/|_|  |___/
+print(" ____             _       
+/ ___|  ___  _ __(_)_ __  
+\___ \ / _ \| '__| | '_ \ 
+ ___) | (_) | |  | | | | |
+|____/ \___/|_|  |_|_| |_|
 Invented by Sorin Services")
 local UserInputService = game:GetService("UserInputService")
 local TweenService     = game:GetService("TweenService")
